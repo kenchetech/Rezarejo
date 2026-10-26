@@ -1,0 +1,44 @@
+﻿version: '3.8'
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: rezarejo_db
+    restart: always
+    environment:
+      POSTGRES_USER: rezarejo_user
+      POSTGRES_PASSWORD: 
+      POSTGRES_DB: rezarejo_erp
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - rezarejo_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rezarejo_user -d rezarejo_erp"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: rezarejo_backend
+    restart: always
+    ports:
+      - "127.0.0.1:8000:8000"
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql://rezarejo_user:@db:5432/rezarejo_erp
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - rezarejo_net
+
+volumes:
+  postgres_data:
+
+networks:
+  rezarejo_net:
+    driver: bridge
